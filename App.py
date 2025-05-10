@@ -54,6 +54,31 @@ if submitted:
 
     input_df = pd.DataFrame([input_data])
 
+    # Ensure column names match the model's training data
+    column_rename_map = {
+        'Gender': 'gender',
+        'Education_Level': 'education_level',
+        'Marital_Status': 'marital_status',
+        'Income_Category': 'income_category',
+        'Card_Category': 'card_category',
+        'Customer_Age': 'customer_age',
+        'Dependent_count': 'dependent_count',
+        'Months_on_book': 'months_on_book',
+        'Total_Relationship_Count': 'total_relationship_count',
+        'Months_Inactive_12_mon': 'months_inactive_12_mon',
+        'Contacts_Count_12_mon': 'contacts_count_12_mon',
+        'Credit_Limit': 'credit_limit',
+        'Total_Revolving_Bal': 'total_revolving_bal',
+        'Avg_Open_To_Buy': 'avg_open_to_buy',
+        'Total_Amt_Chng_Q4_Q1': 'total_amt_chng_q4_q1',
+        'Total_Trans_Amt': 'total_trans_amt',
+        'Total_Trans_Ct': 'total_trans_ct',
+        'Total_Ct_Chng_Q4_Q1': 'total_ct_chng_q4_q1',
+        'Avg_Utilization_Ratio': 'avg_utilization_ratio'
+    }
+
+    input_df = input_df.rename(columns=column_rename_map)
+
     # Encode categorical values
     label_encoders = joblib.load("label_encoder.joblib")  # Make sure this file exists and is properly loaded
     for col in categorical_cols:
