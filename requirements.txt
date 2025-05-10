@@ -1,5 +1,12 @@
 streamlit
+scikit-learn
 pandas
 numpy
-scikit-learn
+matplotlib
+seaborn
+nltk
 joblib
+scipy
+ydata-profiling
+datasets
+imbalanced-learn
