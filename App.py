@@ -29,18 +29,43 @@ card_options = ['Blue', 'Gold', 'Silver', 'Platinum']
 
 # Streamlit form
 with st.form("attrition_form"):
-    gender = st.selectbox("Gender", gender_options)
-    education = st.selectbox("Education Level", education_options)
-    marital = st.selectbox("Marital Status", marital_options)
-    income = st.selectbox("Income Category", income_options)
-    card = st.selectbox("Card Category", card_options)
+    st.subheader("📋 Categorical Information")
 
-    numerical_inputs = {}
-    for col in numerical_cols:
-        val = 0.0 if col != "Customer_Age" else 40
-        numerical_inputs[col] = st.number_input(col.replace("_", " "), value=val)
+    col1, col2 = st.columns(2)
+    with col1:
+        gender = st.selectbox("Gender", gender_options)
+        education = st.selectbox("Education Level", education_options)
+        marital = st.selectbox("Marital Status", marital_options)
+    with col2:
+        income = st.selectbox("Income Category", income_options)
+        card = st.selectbox("Card Category", card_options)
 
-    submitted = st.form_submit_button("Predict")
+    st.subheader("🔢 Numerical Information")
+    with st.expander("Click to expand numerical inputs"):
+        numerical_inputs = {}
+        numerical_labels = {
+            'Customer_Age': 'Customer Age',
+            'Dependent_count': 'Number of Dependents',
+            'Months_on_book': 'Months on Book',
+            'Total_Relationship_Count': 'Total Relationship Count',
+            'Months_Inactive_12_mon': 'Inactive Months (Last 12)',
+            'Contacts_Count_12_mon': 'Contact Count (Last 12 Months)',
+            'Credit_Limit': 'Credit Limit',
+            'Total_Revolving_Bal': 'Total Revolving Balance',
+            'Avg_Open_To_Buy': 'Average Open to Buy',
+            'Total_Amt_Chng_Q4_Q1': 'Transaction Amount Change (Q4-Q1)',
+            'Total_Trans_Amt': 'Total Transaction Amount',
+            'Total_Trans_Ct': 'Total Transaction Count',
+            'Total_Ct_Chng_Q4_Q1': 'Transaction Count Change (Q4-Q1)',
+            'Avg_Utilization_Ratio': 'Average Utilization Ratio'
+        }
+
+        for col in numerical_cols:
+            label = numerical_labels.get(col, col.replace("_", " "))
+            default_val = 40.0 if col == "Customer_Age" else 0.0
+            numerical_inputs[col] = st.number_input(label, value=default_val, step=1.0)
+
+    submitted = st.form_submit_button("🚀 Predict")
 
 if submitted:
     input_data = {
