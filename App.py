@@ -173,7 +173,7 @@ if submitted:
     processed = processed[model.feature_names_in_]
 
     # Predict
-    prob = model.predict_proba(processed)[:, 1][0]
+    prob = model.predict_proba(processed)[:, 1][1]
     label = model.predict(processed)[0]
 
     # Display results side-by-side
