@@ -91,24 +91,33 @@ def main():
         # Preprocess the data
         processed_df = preprocess(input_df)
 
+        # Print feature names of the model to compare with input data
+        st.write("Model expected feature names:", model.named_steps['preprocessor'].get_feature_names_out())
+
+        # Check the columns in the processed DataFrame
+        st.write("Processed DataFrame columns:", processed_df.columns)
+
         # Get prediction probabilities and label
-        prob = model.predict_proba(processed_df)
-        st.write("Prediction Probabilities:", prob)  # Check output
+        try:
+            prob = model.predict_proba(processed_df)
+            st.write("Prediction Probabilities:", prob)
 
-        # Handle binary classification or multi-class
-        if len(prob.shape) > 1 and prob.shape[1] > 1:
-            prob = prob[:, 1]  # Positive class probability
-        else:
-            prob = prob[:, 0]  # Class 0 probability (negative)
+            # Handle binary classification or multi-class
+            if len(prob.shape) > 1 and prob.shape[1] > 1:
+                prob = prob[:, 1]  # Positive class probability
+            else:
+                prob = prob[:, 0]  # Class 0 probability (negative)
 
-        # Make prediction
-        pred = model.predict(processed_df)[0]
-        st.write("Predicted Label:", pred)  # Check label output
+            # Make prediction
+            pred = model.predict(processed_df)[0]
+            st.write("Predicted Label:", pred)  # Check label output
 
-        # Display results
-        st.subheader('Prediction Results')
-        st.write(f"**Churn Probability:** {prob:.2%}")
-        st.write(f"**Predicted Label:** {pred}")
+            # Display results
+            st.subheader('Prediction Results')
+            st.write(f"**Churn Probability:** {prob:.2%}")
+            st.write(f"**Predicted Label:** {pred}")
+        except ValueError as e:
+            st.error(f"Error during prediction: {e}")
 
 if __name__ == '__main__':
     main()
