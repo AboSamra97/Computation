@@ -12,12 +12,13 @@ except Exception as e:
     st.error("Failed to load label encoders. Ensure 'label_encoder.joblib' is available.")
 
 try:
-    model = joblib.load('svm.joblib')  # pre-trained pipeline (scaler, PCA, SVC)
+    model_dict = joblib.load('svm.joblib')  # dict with keys: 'model', 'scaler', 'pca'
+    model = model_dict['model']
 except Exception as e:
     model = None
-    st.error("Failed to load model. Ensure 'svm.joblib' is available.")
+    st.error("Failed to load model. Ensure 'svm.joblib' contains a trained model.")
 
-# Winsorization limits matching training
+# Winsorization limits
 WINSOR_LIMITS = {
     'months_on_book': 0.03,
     'credit_limit': 0.05,
@@ -35,9 +36,6 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     # Winsorize numeric
     for col, limit in WINSOR_LIMITS.items():
         df[col] = winsorize(df[col], limits=(limit, limit))
-    # Align columns if model includes feature_names_in_
-    if hasattr(model, 'feature_names_in_'):
-        df = df[model.feature_names_in_]
     return df
 
 def main():
@@ -81,7 +79,7 @@ def main():
         submit = st.form_submit_button('Predict')
 
     if submit:
-        # Build DataFrame
+        # Build DataFrame with correct lowercase keys
         data = {
             'customer_age': [age],
             'dependent_count': [dependents],
@@ -99,16 +97,19 @@ def main():
             'income_category': [income],
             'card_category': [card]
         }
+
         input_df = pd.DataFrame(data)
 
-        # Preprocess
         try:
             processed_df = preprocess(input_df.copy())
-            # Predict
+
+            # Ensure column order matches model's training
+            if hasattr(model, 'feature_names_in_'):
+                processed_df = processed_df[model.feature_names_in_]
+
             prob = model.predict_proba(processed_df)[:, 1][0]
             pred = model.predict(processed_df)[0]
 
-            # Display results
             st.subheader('Prediction Results')
             st.write(f"**Churn Probability:** {prob:.2%}")
             st.write(f"**Predicted Label:** {pred}")
