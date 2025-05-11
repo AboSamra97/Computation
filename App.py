@@ -179,6 +179,6 @@ if submitted:
     # Display results side-by-side
     st.subheader("🔮 Prediction Results")
     col1, col2 = st.columns(2)
-    prob=1-prob;
     col1.metric("Churn Probability", f"{prob:.2%}")
     col2.metric("Predicted Outcome", label)
+    col3.metric("Predicted Outcome", prob)
