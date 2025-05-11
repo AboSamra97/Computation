@@ -5,26 +5,17 @@ from scipy.stats.mstats import winsorize
 import joblib
 
 # Load encoders and model
-import joblib
-
-# Load the model
-model = joblib.load("your_model_path_here.pkl")  # change path as needed
-
-# Debug info
-print(f"Loaded object type: {type(model)}")
-if isinstance(model, dict):
-    print("Keys in the loaded dictionary:")
-    print(model.keys())
-else:
-    print("Loaded object is not a dictionary, continuing...")
-
-# Try to run predict_proba safely
 try:
-    result = model.predict_proba(X_test)  # replace X_test with your actual test input
-    print("Prediction succeeded. Here are the probabilities:")
-    print(result)
+    label_encoders = joblib.load('label_encoder.joblib')  # dict of LabelEncoders for categorical columns
 except Exception as e:
-    print(f"Prediction failed: {e}")
+    label_encoders = {}
+    st.error("Failed to load label encoders. Ensure 'label_encoder.joblib' is available.")
+
+try:
+    model = joblib.load('svm.joblib')  # pre-trained pipeline (scaler, PCA, SVC)
+except Exception as e:
+    model = None
+    st.error("Failed to load model. Ensure 'svm.joblib' is available.")
 
 # Winsorization limits matching training
 WINSOR_LIMITS = {
