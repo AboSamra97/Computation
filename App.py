@@ -22,23 +22,10 @@ except Exception as e:
 GENDER_MAP = {'M': 'Male', 'F': 'Female'}
 INV_GENDER_MAP = {v: k for k, v in GENDER_MAP.items()}
 
-# Winsorization limits used during training
-WINSOR_LIMITS = {
-    'months_on_book': 0.03,
-    'credit_limit': 0.05,
-    'avg_open_to_buy': 0.05,
-    'total_amt_chng_q4_q1': 0.02,
-    'total_trans_amt': 0.04,
-    'total_ct_chng_q4_q1': 0.01
-}
-
 def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     # Encode categories
     for col, le in label_encoders.items():
         df[col] = le.transform(df[col])
-    # Winsorize numeric
-    for col, limit in WINSOR_LIMITS.items():
-        df[col] = winsorize(df[col], limits=(limit, limit))
     return df
 
 # Sidebar input form
