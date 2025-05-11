@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 from scipy.stats.mstats import winsorize
 import joblib
-st.write("Pipeline expects these features, in order:")
-st.write(model.feature_names_in_)
 # Load encoders and pipeline
 try:
     label_encoders = joblib.load('label_encoders.joblib')
