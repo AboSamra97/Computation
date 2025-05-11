@@ -2,13 +2,12 @@ import streamlit as st
 import pandas as pd
 from scipy.stats.mstats import winsorize
 import joblib
-
+st.write("Pipeline expects these features, in order:")
+st.write(model.feature_names_in_)
 # Load encoders and pipeline
 try:
     label_encoders = joblib.load('label_encoders.joblib')
     model = joblib.load('sklearn_pipeline.joblib')  # pipeline with scaler, PCA, SVC
-    st.write("Pipeline expects these features, in order:")
-    st.write(model.feature_names_in_)
 except Exception as e:
     st.error(f"Failed to load saved artifacts: {e}")
     st.stop()
