@@ -14,9 +14,6 @@ except Exception as e:
     st.error(f"Failed to load saved artifacts: {e}")
     st.stop()
 
-# Optional: show expected feature order
-st.write("🔑 Model expects features (in order):")
-st.write(list(model.feature_names_in_))
 
 # Winsorization limits from training
 WINSOR_LIMITS = {
