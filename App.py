@@ -1,23 +1,16 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 from scipy.stats.mstats import winsorize
 import joblib
 
-# Load encoders and model
+# Load encoders and pipeline
 try:
-    label_encoders = joblib.load('label_encoder.joblib')  # dict of LabelEncoders for categorical columns
+    label_encoders = joblib.load('label_encoders.joblib')
+    model = joblib.load('sklearn_pipeline.joblib')  # pipeline with scaler, PCA, SVC
 except Exception as e:
-    label_encoders = {}
-    st.error("Failed to load label encoders. Ensure 'label_encoder.joblib' is available.")
+    st.error(f"Failed to load saved artifacts: {e}")
+    st.stop()
 
-try:
-    model = joblib.load('svm.joblib')  # pre-trained pipeline (scaler, PCA, SVC)
-except Exception as e:
-    model = None
-    st.error("Failed to load model. Ensure 'svm.joblib' is available.")
-
-# Winsorization limits matching training
 WINSOR_LIMITS = {
     'months_on_book': 0.03,
     'credit_limit': 0.05,
@@ -27,7 +20,6 @@ WINSOR_LIMITS = {
     'total_ct_chng_q4_q1': 0.01
 }
 
-# Preprocessing function
 def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     # Encode categorical
     for col, le in label_encoders.items():
@@ -83,9 +75,8 @@ def main():
 
         submit = st.form_submit_button('Predict')
 
-    if submit:
-        # Build DataFrame
-        data = {
+   if submit:
+        input_df = pd.DataFrame({
             'customer_age': [age],
             'dependent_count': [dependents],
             'months_on_book': [mos_on_book],
@@ -105,22 +96,16 @@ def main():
             'months_inactive_12_mon': [inactive_months],
             'contacts_count_12_mon': [contacts_count],
             'total_trans_ct': [trans_ct]
-        }
-        input_df = pd.DataFrame(data)
+        })
+        processed_df = preprocess(input_df.copy())
 
-        # Preprocess
-        try:
-            processed_df = preprocess(input_df.copy())
-            # Predict
-            prob = model.predict_proba(processed_df)[:, 1][0]
-            pred = model.predict(processed_df)[0]
+        # Now model is a real Pipeline
+        prob = model.predict_proba(processed_df)[:, 1][0]
+        pred = model.predict(processed_df)[0]
 
-            # Display results
-            st.subheader('Prediction Results')
-            st.write(f"**Churn Probability:** {prob:.2%}")
-            st.write(f"**Predicted Label:** {pred}")
-        except Exception as e:
-            st.error(f"Prediction failed: {e}")
+        st.subheader('Prediction Results')
+        st.write(f"**Churn Probability:** {prob:.2%}")
+        st.write(f"**Predicted Label:** {pred}")
 
 if __name__ == '__main__':
     main()
