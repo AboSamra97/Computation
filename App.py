@@ -34,6 +34,16 @@ def main():
     st.title("Bank Customer Churn Prediction")
     st.markdown("Enter customer details below and click **Predict** to see churn probability.")
 
+    try:
+        gender_options = label_encoders['Gender'].classes_
+        education_options = label_encoders['Education_Level'].classes_
+        marital_options = label_encoders['Marital_Status'].classes_
+        income_options = label_encoders['Income_Category'].classes_
+        card_options = label_encoders['Card_Category'].classes_
+    except KeyError as e:
+        st.error(f"Missing encoder for: {e}. Please check your encoder file.")
+        return
+
     with st.form(key='input_form'):
         # Numeric inputs
         age = st.number_input('Customer Age', min_value=18, max_value=100, value=40)
@@ -48,11 +58,11 @@ def main():
         util_ratio = st.slider('Avg Utilization Ratio', min_value=0.0, max_value=1.0, value=0.3)
 
         # Categorical inputs using encoder classes
-        gender = st.selectbox('Gender', label_encoders['Gender'].classes_)
-        education = st.selectbox('Education Level', label_encoders['Education_Level'].classes_)
-        marital = st.selectbox('Marital Status', label_encoders['Marital_Status'].classes_)
-        income = st.selectbox('Income Category', label_encoders['Income_Category'].classes_)
-        card = st.selectbox('Card Category', label_encoders['Card_Category'].classes_)
+        gender = st.selectbox('Gender', gender_options)
+        education = st.selectbox('Education Level', education_options)
+        marital = st.selectbox('Marital Status', marital_options)
+        income = st.selectbox('Income Category', income_options)
+        card = st.selectbox('Card Category', card_options)
 
         submit = st.form_submit_button('Predict')
 
