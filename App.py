@@ -1,103 +1,93 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
+from scipy.stats.mstats import winsorize
 import joblib
 
-# Load model and feature names
-bundle = joblib.load("svm.joblib")
-model = bundle["model"]
-expected_columns = bundle["features"]
+# Load encoders and model
+label_encoders = joblib.load('label_encoder.joblib')  # dict of LabelEncoders for categorical columns
+model = joblib.load('svm.joblib')  # pre-trained pipeline (scaler, PCA, SVC)
 
-st.title("🧠 Customer Attrition Prediction")
+# Winsorization limits matching training
+WINSOR_LIMITS = {
+    'Months_on_book': 0.03,
+    'Credit_Limit': 0.05,
+    'Avg_Open_To_Buy': 0.05,
+    'Total_Amt_Chng_Q4_Q1': 0.02,
+    'Total_Trans_Amt': 0.04,
+    'Total_Ct_Chng_Q4_Q1': 0.01
+}
 
-st.markdown("Fill in the details to predict whether a customer is likely to attrite.")
+# Preprocessing function
+def preprocess(df: pd.DataFrame) -> pd.DataFrame:
+    # Encode categorical
+    for col, le in label_encoders.items():
+        df[col] = le.transform(df[col])
+    # Winsorize numeric
+    for col, limit in WINSOR_LIMITS.items():
+        df[col] = winsorize(df[col], limits=(limit, limit))
+    return df
 
-# Categorical and numerical column definitions
-categorical_cols = ['Gender', 'Education_Level', 'Marital_Status', 'Income_Category', 'Card_Category']
-numerical_cols = [
-    'Customer_Age', 'Dependent_count', 'Months_on_book', 'Total_Relationship_Count',
-    'Months_Inactive_12_mon', 'Contacts_Count_12_mon', 'Credit_Limit', 'Total_Revolving_Bal',
-    'Avg_Open_To_Buy', 'Total_Amt_Chng_Q4_Q1', 'Total_Trans_Amt', 'Total_Trans_Ct',
-    'Total_Ct_Chng_Q4_Q1', 'Avg_Utilization_Ratio'
-]
 
-# Value options for dropdowns
-gender_options = ['Male', 'Female']
-education_options = ['High School', 'Graduate', 'Uneducated', 'Unknown', 'College', 'Post-Graduate', 'Doctorate']
-marital_options = ['Married', 'Single', 'Unknown', 'Divorced']
-income_options = ['$60K - $80K', 'Less than $40K', '$80K - $120K', '$40K - $60K', '$120K +', 'Unknown']
-card_options = ['Blue', 'Gold', 'Silver', 'Platinum']
+def main():
+    st.set_page_config(page_title="Churn Predictor", layout="centered")
+    st.title("Bank Customer Churn Prediction")
+    st.markdown("Enter customer details below and click **Predict** to see churn probability.")
 
-# Streamlit form
-with st.form("attrition_form"):
-    gender = st.selectbox("Gender", gender_options)
-    education = st.selectbox("Education Level", education_options)
-    marital = st.selectbox("Marital Status", marital_options)
-    income = st.selectbox("Income Category", income_options)
-    card = st.selectbox("Card Category", card_options)
+    with st.form(key='input_form'):
+        # Numeric inputs
+        age = st.number_input('Customer Age', min_value=18, max_value=100, value=40)
+        dependents = st.number_input('Dependent Count', min_value=0, max_value=10, value=1)
+        mos_on_book = st.number_input('Months on Book', min_value=0, max_value=120, value=12)
+        credit_lim = st.number_input('Credit Limit', min_value=0.0, max_value=50000.0, value=10000.0)
+        revolve_bal = st.number_input('Total Revolving Balance', min_value=0.0, max_value=5000.0, value=1000.0)
+        open_to_buy = st.number_input('Avg Open To Buy', min_value=0.0, max_value=50000.0, value=9000.0)
+        amt_chng = st.number_input('Total Amt Change Q4/Q1', min_value=0.0, value=1.0)
+        trans_amt = st.number_input('Total Transaction Amount', min_value=0.0, value=1000.0)
+        ct_chng = st.number_input('Total Count Change Q4/Q1', min_value=0.0, value=1.0)
+        util_ratio = st.slider('Avg Utilization Ratio', min_value=0.0, max_value=1.0, value=0.3)
 
-    numerical_inputs = {}
-    for col in numerical_cols:
-        val = 0.0 if col != "Customer_Age" else 40
-        numerical_inputs[col] = st.number_input(col.replace("_", " "), value=val)
+        # Categorical inputs using encoder classes
+        gender = st.selectbox('Gender', label_encoders['Gender'].classes_)
+        education = st.selectbox('Education Level', label_encoders['Education_Level'].classes_)
+        marital = st.selectbox('Marital Status', label_encoders['Marital_Status'].classes_)
+        income = st.selectbox('Income Category', label_encoders['Income_Category'].classes_)
+        card = st.selectbox('Card Category', label_encoders['Card_Category'].classes_)
 
-    submitted = st.form_submit_button("Predict")
+        submit = st.form_submit_button('Predict')
 
-if submitted:
-    input_data = {
-        'Gender': gender,
-        'Education_Level': education,
-        'Marital_Status': marital,
-        'Income_Category': income,
-        'Card_Category': card,
-        **numerical_inputs
-    }
+    if submit:
+        # Build DataFrame
+        data = {
+            'Customer_Age': [age],
+            'Dependent_count': [dependents],
+            'Months_on_book': [mos_on_book],
+            'Credit_Limit': [credit_lim],
+            'Total_Revolving_Bal': [revolve_bal],
+            'Avg_Open_To_Buy': [open_to_buy],
+            'Total_Amt_Chng_Q4_Q1': [amt_chng],
+            'Total_Trans_Amt': [trans_amt],
+            'Total_Ct_Chng_Q4_Q1': [ct_chng],
+            'Avg_Utilization_Ratio': [util_ratio],
+            'Gender': [gender],
+            'Education_Level': [education],
+            'Marital_Status': [marital],
+            'Income_Category': [income],
+            'Card_Category': [card]
+        }
+        input_df = pd.DataFrame(data)
 
-    input_df = pd.DataFrame([input_data])
+        # Preprocess
+        processed_df = preprocess(input_df.copy())
 
-    # Ensure column names match the model's training data
-    column_rename_map = {
-        'Gender': 'gender',
-        'Education_Level': 'education_level',
-        'Marital_Status': 'marital_status',
-        'Income_Category': 'income_category',
-        'Card_Category': 'card_category',
-        'Customer_Age': 'customer_age',
-        'Dependent_count': 'dependent_count',
-        'Months_on_book': 'months_on_book',
-        'Total_Relationship_Count': 'total_relationship_count',
-        'Months_Inactive_12_mon': 'months_inactive_12_mon',
-        'Contacts_Count_12_mon': 'contacts_count_12_mon',
-        'Credit_Limit': 'credit_limit',
-        'Total_Revolving_Bal': 'total_revolving_bal',
-        'Avg_Open_To_Buy': 'avg_open_to_buy',
-        'Total_Amt_Chng_Q4_Q1': 'total_amt_chng_q4_q1',
-        'Total_Trans_Amt': 'total_trans_amt',
-        'Total_Trans_Ct': 'total_trans_ct',
-        'Total_Ct_Chng_Q4_Q1': 'total_ct_chng_q4_q1',
-        'Avg_Utilization_Ratio': 'avg_utilization_ratio'
-    }
+        # Predict
+        prob = model.predict_proba(processed_df)[:, 1][0]
+        pred = model.predict(processed_df)[0]
 
-    input_df = input_df.rename(columns=column_rename_map)
+        # Display results
+        st.subheader('Prediction Results')
+        st.write(f"**Churn Probability:** {prob:.2%}")
+        st.write(f"**Predicted Label:** {pred}")
 
-    # Encode categorical values
-    label_encoders = joblib.load("label_encoder.joblib")  # Make sure this file exists and is properly loaded
-    for col in categorical_cols:
-        le = label_encoders.get(col)
-        if le:
-            try:
-                input_df[col] = le.transform(input_df[col])
-            except ValueError:
-                st.error(f"Invalid input for {col}. Choose from: {list(le.classes_)}")
-                st.stop()
-
-    # Reorder input_df to match training feature names
-    try:
-        input_df = input_df[expected_columns]
-    except KeyError as e:
-        st.error(f"❌ Missing or unexpected input columns: {e}")
-        st.stop()
-
-    # Predict
-    prediction = model.predict(input_df)[0]
-    label = "Attrited Customer" if prediction == 1 else "Existing Customer"
-    st.success(f"🧾 Prediction: **{label}**")
+if __name__ == '__main__':
+    main()
