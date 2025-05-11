@@ -181,4 +181,3 @@ if submitted:
     col1, col2 = st.columns(2)
     col1.metric("Churn Probability", f"{prob:.2%}")
     col2.metric("Predicted Outcome", label)
-    col3.metric("Predicted Outcome", prob)
