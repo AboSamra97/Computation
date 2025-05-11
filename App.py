@@ -18,7 +18,8 @@ except Exception as e:
     st.sidebar.error(f"Error loading model artifacts: {e}")
     st.stop()
 
-# Winsorization limits from training\ nWINSOR_LIMITS = {
+# Winsorization limits from training
+WINSOR_LIMITS = {
     'months_on_book': 0.03,
     'credit_limit': 0.05,
     'avg_open_to_buy': 0.05,
