@@ -173,11 +173,12 @@ if submitted:
     processed = processed[model.feature_names_in_]
 
     # Predict
-    prob = model.predict_proba(processed)[:, 1][1]
+    prob = model.predict_proba(processed)[:, 1][0]
     label = model.predict(processed)[0]
 
     # Display results side-by-side
     st.subheader("🔮 Prediction Results")
     col1, col2 = st.columns(2)
+    prob=1-prob;
     col1.metric("Churn Probability", f"{prob:.2%}")
     col2.metric("Predicted Outcome", label)
