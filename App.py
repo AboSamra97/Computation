@@ -3,22 +3,26 @@ import pandas as pd
 from scipy.stats.mstats import winsorize
 import joblib
 
-# Page configuration
+# Page configuration (must be first Streamlit call)
 st.set_page_config(
     page_title="Bank Churn Predictor",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Load encoders and trained pipeline
+# Load LabelEncoders and trained Pipeline
 try:
-    label_encoders = joblib.load('label_encoders.joblib')      # dict of LabelEncoder
-    model = joblib.load('sklearn_pipeline.joblib')             # fitted Pipeline with scaler, PCA, SVC
+    label_encoders = joblib.load('label_encoders.joblib')  # dict of LabelEncoder objects
+    model = joblib.load('sklearn_pipeline.joblib')         # fitted Pipeline with scaler, PCA, SVC
 except Exception as e:
     st.sidebar.error(f"Error loading model artifacts: {e}")
     st.stop()
 
-# Winsorization limits from training
+# Mapping for readability
+GENDER_MAP = {'M': 'Male', 'F': 'Female'}
+INV_GENDER_MAP = {v: k for k, v in GENDER_MAP.items()}
+
+# Winsorization limits used during training
 WINSOR_LIMITS = {
     'months_on_book': 0.03,
     'credit_limit': 0.05,
@@ -29,58 +33,118 @@ WINSOR_LIMITS = {
 }
 
 def preprocess(df: pd.DataFrame) -> pd.DataFrame:
-    # Encode categories
+    # Encode categories back to model labels
     for col, le in label_encoders.items():
         df[col] = le.transform(df[col])
-    # Winsorize numeric
+    # Winsorize numeric fields
     for col, limit in WINSOR_LIMITS.items():
         df[col] = winsorize(df[col], limits=(limit, limit))
     return df
 
-# Sidebar title
-st.sidebar.header("Input Customer Details")
+# Sidebar input form
+st.sidebar.header("Enter Customer Details")
+with st.sidebar.form(key='input_form'):
+    st.subheader("👤 Demographics")
+    age = st.number_input(
+        "Age (years)", min_value=18, max_value=100, value=45,
+        help="Customer's age in completed years"
+    )
+    gender_read = st.selectbox(
+        "Gender", list(GENDER_MAP.values()),
+        help="Select 'Male' or 'Female'"
+    )
+    gender = INV_GENDER_MAP[gender_read]
 
-with st.sidebar.form(key='customer_form'):
-    st.subheader("Demographic Info")
-    age = st.number_input("Age (years)", min_value=18, max_value=100, value=45)
-    gender = st.selectbox("Gender", label_encoders['gender'].classes_)
+    st.subheader("💼 Account Details")
+    months_on_book = st.number_input(
+        "Account Tenure (months)", min_value=0, max_value=120, value=36,
+        help="Number of months since account opening"
+    )
+    total_relationship_count = st.number_input(
+        "Total Relationships", min_value=0, max_value=10, value=4,
+        help="Number of products held with the bank"
+    )
+    months_inactive = st.number_input(
+        "Inactive Months (last 12)", min_value=0, max_value=12, value=2,
+        help="Count of months with no transactions in the past year"
+    )
+    contacts_count = st.number_input(
+        "Contacts (last 12 months)", min_value=0, max_value=20, value=3,
+        help="Number of customer-service calls in the past year"
+    )
 
-    st.subheader("Account Details")
-    months_on_book = st.number_input("Tenure (months)", min_value=0, max_value=120, value=36)
-    total_relationship_count = st.number_input("Total Relationships", min_value=0, max_value=10, value=4)
-    months_inactive = st.number_input("Inactive Months (last 12)", min_value=0, max_value=12, value=2)
-    contacts_count = st.number_input("Contacts (last 12 months)", min_value=0, max_value=20, value=3)
+    st.subheader("💳 Transaction Metrics")
+    total_trans_amt = st.number_input(
+        "Total Transaction Amount ($)", min_value=0.0, value=3000.0,
+        help="Sum of all transaction amounts over all channels"
+    )
+    total_trans_ct = st.number_input(
+        "Transaction Count", min_value=0, value=50,
+        help="Total number of transactions made"
+    )
+    avg_util_ratio = st.slider(
+        "Avg Utilization Ratio", min_value=0.0, max_value=1.0, value=0.25,
+        help="Avg. balance / credit limit over time"
+    )
 
-    st.subheader("Transaction Metrics")
-    total_trans_amt = st.number_input("Total Transaction Amount ($)", min_value=0.0, value=3000.0)
-    total_trans_ct = st.number_input("Transaction Count", min_value=0, value=50)
-    avg_util_ratio = st.slider("Avg Utilization Ratio", min_value=0.0, max_value=1.0, value=0.25)
+    st.subheader("💰 Financial Metrics")
+    credit_limit = st.number_input(
+        "Credit Limit ($)", min_value=0.0, value=10000.0,
+        help="Maximum credit limit available"
+    )
+    total_revol_bal = st.number_input(
+        "Revolving Balance ($)", min_value=0.0, value=1000.0,
+        help="Outstanding balance that is carried over"
+    )
+    avg_open_to_buy = st.number_input(
+        "Avg Open-to-Buy ($)", min_value=0.0, value=9000.0,
+        help="Average available credit over time"
+    )
+    amt_chng_q4_q1 = st.number_input(
+        "Amt Change Q4/Q1", min_value=0.0, value=1.0,
+        help="Ratio of transaction amount: Q4 vs Q1"
+    )
+    ct_chng_q4_q1 = st.number_input(
+        "Count Change Q4/Q1", min_value=0.0, value=1.0,
+        help="Ratio of transaction counts: Q4 vs Q1"
+    )
 
-    st.subheader("Financial Metrics")
-    credit_limit = st.number_input("Credit Limit ($)", min_value=0.0, value=10000.0)
-    total_revol_bal = st.number_input("Revolving Balance ($)", min_value=0.0, value=1000.0)
-    avg_open_to_buy = st.number_input("Avg Open-to-Buy ($)", min_value=0.0, value=9000.0)
-    amt_chng_q4_q1 = st.number_input("Amt Change Q4/Q1", min_value=0.0, value=1.0)
-    ct_chng_q4_q1 = st.number_input("Count Change Q4/Q1", min_value=0.0, value=1.0)
-
-    st.subheader("Personal Attributes")
-    dependents = st.number_input("Dependents", min_value=0, max_value=10, value=2)
-    education = st.selectbox("Education Level", label_encoders['education_level'].classes_)
-    marital = st.selectbox("Marital Status", label_encoders['marital_status'].classes_)
-    income = st.selectbox("Income Bracket", label_encoders['income_category'].classes_)
-    card = st.selectbox("Card Type", label_encoders['card_category'].classes_)
+    st.subheader("🔖 Personal Attributes")
+    dependents = st.number_input(
+        "Dependents", min_value=0, max_value=10, value=2,
+        help="Number of dependents"
+    )
+    education = st.selectbox(
+        "Education Level",
+        label_encoders['education_level'].classes_,
+        help="Highest level of education attained"
+    )
+    marital = st.selectbox(
+        "Marital Status",
+        label_encoders['marital_status'].classes_,
+        help="Customer's marital status"
+    )
+    income = st.selectbox(
+        "Income Bracket",
+        label_encoders['income_category'].classes_,
+        help="Annual household income range"
+    )
+    card = st.selectbox(
+        "Card Type",
+        label_encoders['card_category'].classes_,
+        help="Type of credit card product"
+    )
 
     submitted = st.form_submit_button("Predict Churn")
 
 # Main page
 st.title("🏦 Bank Customer Churn Predictor")
 st.markdown(
-    "Use the form in the sidebar to enter customer details. "
-    "Click **Predict Churn** to see the probability of attrition."
+    "Use the sidebar to enter customer details and click **Predict Churn**."
 )
 
 if submitted:
-    # Collect inputs
+    # Build DataFrame
     data = {
         'customer_age': [age],
         'gender': [gender],
@@ -112,8 +176,8 @@ if submitted:
     prob = model.predict_proba(processed)[:, 1][0]
     label = model.predict(processed)[0]
 
-    # Display results
-    st.subheader("Prediction Results")
+    # Display results side-by-side
+    st.subheader("🔮 Prediction Results")
     col1, col2 = st.columns(2)
     col1.metric("Churn Probability", f"{prob:.2%}")
     col2.metric("Predicted Outcome", label)
