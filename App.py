@@ -5,8 +5,17 @@ from scipy.stats.mstats import winsorize
 import joblib
 
 # Load encoders and model
-label_encoders = joblib.load('label_encoder.joblib')  # dict of LabelEncoders for categorical columns
-model = joblib.load('svm.joblib')  # pre-trained pipeline (scaler, PCA, SVC)
+try:
+    label_encoders = joblib.load('label_encoder.joblib')  # dict of LabelEncoders for categorical columns
+except Exception as e:
+    label_encoders = {}
+    st.error("Failed to load label encoders. Ensure 'label_encoder.joblib' is available.")
+
+try:
+    model = joblib.load('svm.joblib')  # pre-trained pipeline (scaler, PCA, SVC)
+except Exception as e:
+    model = None
+    st.error("Failed to load model. Ensure 'svm.joblib' is available.")
 
 # Winsorization limits matching training
 WINSOR_LIMITS = {
@@ -28,11 +37,13 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
         df[col] = winsorize(df[col], limits=(limit, limit))
     return df
 
-
 def main():
     st.set_page_config(page_title="Churn Predictor", layout="centered")
     st.title("Bank Customer Churn Prediction")
     st.markdown("Enter customer details below and click **Predict** to see churn probability.")
+
+    if not label_encoders or model is None:
+        st.stop()
 
     try:
         gender_options = label_encoders['Gender'].classes_
@@ -88,16 +99,18 @@ def main():
         input_df = pd.DataFrame(data)
 
         # Preprocess
-        processed_df = preprocess(input_df.copy())
+        try:
+            processed_df = preprocess(input_df.copy())
+            # Predict
+            prob = model.predict_proba(processed_df)[:, 1][0]
+            pred = model.predict(processed_df)[0]
 
-        # Predict
-        prob = model.predict_proba(processed_df)[:, 1][0]
-        pred = model.predict(processed_df)[0]
-
-        # Display results
-        st.subheader('Prediction Results')
-        st.write(f"**Churn Probability:** {prob:.2%}")
-        st.write(f"**Predicted Label:** {pred}")
+            # Display results
+            st.subheader('Prediction Results')
+            st.write(f"**Churn Probability:** {prob:.2%}")
+            st.write(f"**Predicted Label:** {pred}")
+        except Exception as e:
+            st.error(f"Prediction failed: {e}")
 
 if __name__ == '__main__':
     main()
