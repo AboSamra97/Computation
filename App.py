@@ -155,7 +155,7 @@ if submitted:
     input_df = pd.DataFrame(data)
     processed = preprocess(input_df.copy())
     processed = processed[model.feature_names_in_]
-    prob = model.predict_proba(processed)[:, 1][0]
+    prob = model.predict_proba(processed)[0][0]
     label = model.predict(processed)[0]
     st.subheader("🔮 Prediction Results")
     col1, col2 = st.columns(2)
