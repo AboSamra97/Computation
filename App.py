@@ -91,11 +91,19 @@ def main():
         # Preprocess the data
         processed_df = preprocess(input_df)
 
-        # Print feature names of the model to compare with input data
-        st.write("Model expected feature names:", model.named_steps['preprocessor'].get_feature_names_out())
+        # Inspect model steps to understand the structure
+        model_steps = model.named_steps
+        st.write("Model steps:", model_steps)
 
-        # Check the columns in the processed DataFrame
-        st.write("Processed DataFrame columns:", processed_df.columns)
+        # Try to extract the preprocessing step
+        try:
+            if 'preprocessor' in model_steps:
+                preprocessor = model_steps['preprocessor']
+                st.write("Model preprocessor feature names:", preprocessor.get_feature_names_out())
+            else:
+                st.warning("Preprocessor step not found in the pipeline.")
+        except AttributeError as e:
+            st.error(f"Error accessing preprocessor: {e}")
 
         # Get prediction probabilities and label
         try:
