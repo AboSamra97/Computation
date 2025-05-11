@@ -12,13 +12,12 @@ except Exception as e:
     st.error("Failed to load label encoders. Ensure 'label_encoder.joblib' is available.")
 
 try:
-    model_dict = joblib.load('svm.joblib')  # dict with keys: 'model', 'scaler', 'pca'
-    model = model_dict['model']
+    model = joblib.load('svm.joblib')  # pre-trained pipeline (scaler, PCA, SVC)
 except Exception as e:
     model = None
-    st.error("Failed to load model. Ensure 'svm.joblib' contains a trained model.")
+    st.error("Failed to load model. Ensure 'svm.joblib' is available.")
 
-# Winsorization limits
+# Winsorization limits matching training
 WINSOR_LIMITS = {
     'months_on_book': 0.03,
     'credit_limit': 0.05,
@@ -69,6 +68,12 @@ def main():
         ct_chng = st.number_input('Total Count Change Q4/Q1', min_value=0.0, value=1.0)
         util_ratio = st.slider('Avg Utilization Ratio', min_value=0.0, max_value=1.0, value=0.3)
 
+        # New required fields
+        rel_count = st.number_input('Total Relationship Count', min_value=0, max_value=10, value=3)
+        inactive_months = st.number_input('Months Inactive (Last 12 months)', min_value=0, max_value=12, value=2)
+        contacts_count = st.number_input('Contacts Count (Last 12 months)', min_value=0, max_value=20, value=3)
+        trans_ct = st.number_input('Total Transaction Count', min_value=0, max_value=200, value=50)
+
         # Categorical inputs using encoder classes
         gender = st.selectbox('Gender', gender_options)
         education = st.selectbox('Education Level', education_options)
@@ -79,7 +84,7 @@ def main():
         submit = st.form_submit_button('Predict')
 
     if submit:
-        # Build DataFrame with correct lowercase keys
+        # Build DataFrame
         data = {
             'customer_age': [age],
             'dependent_count': [dependents],
@@ -95,21 +100,22 @@ def main():
             'education_level': [education],
             'marital_status': [marital],
             'income_category': [income],
-            'card_category': [card]
+            'card_category': [card],
+            'total_relationship_count': [rel_count],
+            'months_inactive_12_mon': [inactive_months],
+            'contacts_count_12_mon': [contacts_count],
+            'total_trans_ct': [trans_ct]
         }
-
         input_df = pd.DataFrame(data)
 
+        # Preprocess
         try:
             processed_df = preprocess(input_df.copy())
-
-            # Ensure column order matches model's training
-            if hasattr(model, 'feature_names_in_'):
-                processed_df = processed_df[model.feature_names_in_]
-
+            # Predict
             prob = model.predict_proba(processed_df)[:, 1][0]
             pred = model.predict(processed_df)[0]
 
+            # Display results
             st.subheader('Prediction Results')
             st.write(f"**Churn Probability:** {prob:.2%}")
             st.write(f"**Predicted Label:** {pred}")
