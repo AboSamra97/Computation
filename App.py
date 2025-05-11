@@ -75,7 +75,8 @@ def main():
 
         submit = st.form_submit_button('Predict')
 
-   if submit:
+    # <-- Align this flush with the `with` block, not indented further
+    if submit:
         input_df = pd.DataFrame({
             'customer_age': [age],
             'dependent_count': [dependents],
@@ -97,7 +98,7 @@ def main():
             'contacts_count_12_mon': [contacts_count],
             'total_trans_ct': [trans_ct]
         })
-        processed_df = preprocess(input_df.copy())
+        processed_df = preprocess(input_df)
 
         # Now model is a real Pipeline
         prob = model.predict_proba(processed_df)[:, 1][0]
@@ -106,6 +107,5 @@ def main():
         st.subheader('Prediction Results')
         st.write(f"**Churn Probability:** {prob:.2%}")
         st.write(f"**Predicted Label:** {pred}")
-
 if __name__ == '__main__':
     main()
