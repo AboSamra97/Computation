@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.stats.mstats import winsorize
 import joblib
 
-# Page configuration (must be first Streamlit call)
+# Page configuration
 st.set_page_config(
     page_title="Bank Churn Predictor",
     layout="wide",
