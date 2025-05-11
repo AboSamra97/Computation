@@ -19,12 +19,12 @@ except Exception as e:
 
 # Winsorization limits matching training
 WINSOR_LIMITS = {
-    'Months_on_book': 0.03,
-    'Credit_Limit': 0.05,
-    'Avg_Open_To_Buy': 0.05,
-    'Total_Amt_Chng_Q4_Q1': 0.02,
-    'Total_Trans_Amt': 0.04,
-    'Total_Ct_Chng_Q4_Q1': 0.01
+    'months_on_book': 0.03,
+    'credit_limit': 0.05,
+    'avg_open_to_buy': 0.05,
+    'total_amt_chng_q4_q1': 0.02,
+    'total_trans_amt': 0.04,
+    'total_ct_chng_q4_q1': 0.01
 }
 
 # Preprocessing function
@@ -35,6 +35,9 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     # Winsorize numeric
     for col, limit in WINSOR_LIMITS.items():
         df[col] = winsorize(df[col], limits=(limit, limit))
+    # Align columns if model includes feature_names_in_
+    if hasattr(model, 'feature_names_in_'):
+        df = df[model.feature_names_in_]
     return df
 
 def main():
@@ -46,11 +49,11 @@ def main():
         st.stop()
 
     try:
-        gender_options = label_encoders['Gender'].classes_
-        education_options = label_encoders['Education_Level'].classes_
-        marital_options = label_encoders['Marital_Status'].classes_
-        income_options = label_encoders['Income_Category'].classes_
-        card_options = label_encoders['Card_Category'].classes_
+        gender_options = label_encoders['gender'].classes_
+        education_options = label_encoders['education_level'].classes_
+        marital_options = label_encoders['marital_status'].classes_
+        income_options = label_encoders['income_category'].classes_
+        card_options = label_encoders['card_category'].classes_
     except KeyError as e:
         st.error(f"Missing encoder for: {e}. Please check your encoder file.")
         return
@@ -80,21 +83,21 @@ def main():
     if submit:
         # Build DataFrame
         data = {
-            'Customer_Age': [age],
-            'Dependent_count': [dependents],
-            'Months_on_book': [mos_on_book],
-            'Credit_Limit': [credit_lim],
-            'Total_Revolving_Bal': [revolve_bal],
-            'Avg_Open_To_Buy': [open_to_buy],
-            'Total_Amt_Chng_Q4_Q1': [amt_chng],
-            'Total_Trans_Amt': [trans_amt],
-            'Total_Ct_Chng_Q4_Q1': [ct_chng],
-            'Avg_Utilization_Ratio': [util_ratio],
-            'Gender': [gender],
-            'Education_Level': [education],
-            'Marital_Status': [marital],
-            'Income_Category': [income],
-            'Card_Category': [card]
+            'customer_age': [age],
+            'dependent_count': [dependents],
+            'months_on_book': [mos_on_book],
+            'credit_limit': [credit_lim],
+            'total_revolving_bal': [revolve_bal],
+            'avg_open_to_buy': [open_to_buy],
+            'total_amt_chng_q4_q1': [amt_chng],
+            'total_trans_amt': [trans_amt],
+            'total_ct_chng_q4_q1': [ct_chng],
+            'avg_utilization_ratio': [util_ratio],
+            'gender': [gender],
+            'education_level': [education],
+            'marital_status': [marital],
+            'income_category': [income],
+            'card_category': [card]
         }
         input_df = pd.DataFrame(data)
 
